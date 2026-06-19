@@ -1,0 +1,48 @@
+<?php
+include 'config/koneksi.php';
+
+if (!isset($_SESSION['login'])) {
+    header("Location: login.php");
+    exit;
+}
+
+// PROSES TAMBAH DATA (CREATE)
+if (isset($_POST['tambah_produk'])) {
+    $nama = $_POST['nama_sparepart'];
+    $kategori = $_POST['kategori'];
+    $harga = $_POST['harga'];
+    $stok = $_POST['stok'];
+    $deskripsi = $_POST['deskripsi'];
+
+    $query = "INSERT INTO produk VALUES ('', '$nama', '$kategori', '$harga', '$stok', '$deskripsi')";
+    mysqli_query($conn, $query);
+    $produk_id = mysqli_insert_id($conn);
+
+    // Proses Multiple Upload File Gambar
+    if (!empty($_FILES['gambar']['name'][0])) {
+        foreach ($_FILES['gambar']['name'] as $key => $val) {
+            $nama_file = time() . "_" . $_FILES['gambar']['name'][$key];
+            $tmp_name = $_FILES['gambar']['tmp_name'][$key];
+            
+            if (move_uploaded_uploaded_file($tmp_name, "assets/uploads/" . $nama_file)) {
+                mysqli_query($conn, "INSERT INTO gambar_produk VALUES ('', '$produk_id', '$nama_file')");
+            }
+        }
+    }
+    header("Location: index.php");
+}
+
+// PROSES HAPUS DATA (DELETE)
+if (isset($_GET['hapus'])) {
+    $id = $_GET['hapus'];
+    
+    // Ambil info gambar untuk dihapus dari folder berkas fisik
+    $res = mysqli_query($conn, "SELECT nama_file FROM gambar_produk WHERE produk_id = $id");
+    while($row = mysqli_fetch_assoc($res)) {
+        unlink("assets/uploads/" . $row['nama_file']);
+    }
+
+    mysqli_query($conn, "DELETE FROM produk WHERE id = $id");
+    header("Location: index.php");
+}
+?>
